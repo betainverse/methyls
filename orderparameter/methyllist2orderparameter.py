@@ -10,6 +10,7 @@ from pandas import Series, DataFrame
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
+import matplotlib.gridspec as gridspec
 from scipy.optimize import curve_fit
 from math import pi
 
@@ -138,8 +139,11 @@ def plot1curve(assignment,allratios,allsigmas,ax):
     S2expression = r'$S_{axis}^2 = %.2f\pm%.2f$'%(S2axis,sigS2axis)
     ax.errorbar(delays, ratios, fmt = 'bo', yerr = sigmas)
     ax.plot(delays, fitFunc(delays, fitParams[0], fitParams[1]))
-    ax.annotate(S2expression,xy=(10,-10),xycoords='axes points',
-                 horizontalalignment='left',verticalalignment='top')
+    labels = ax.get_xticklabels()
+    for label in labels:
+        label.set_rotation(45)
+    ax.annotate(assignment+'\n'+S2expression,xy=(10,-10),xycoords='axes points',
+                horizontalalignment='left',verticalalignment='top')
     #ax.title(assignment)
     
     
@@ -147,7 +151,7 @@ def plot3curves(allratios,allsigmas):
     delays=allratios.columns.values
     assignments = allratios[delays[0]].keys()
     f, (ax1,ax2,ax3) = plt.subplots(1,3,sharex=True,sharey=True)
-    f.subplots_adjust(vspace=0.001)
+    f.subplots_adjust(wspace=0.0)
     axes = (ax1,ax2,ax3)
     i=0
     plt.ylabel('Peak height ratio '+r'$\frac{I_a}{I_b}$')
@@ -158,6 +162,46 @@ def plot3curves(allratios,allsigmas):
     
     #plt.setp([a.get_yticklabels() for a in f.axes[:-1]], visible=False)
     plt.savefig('stuff.pdf')
+
+## def plot1curve(assignment,allratios,allsigmas,ax):
+##     delays = allratios.columns.values
+##     ratios = allratios.ix[assignment]
+##     sigmas = allsigmas.ix[assignment]
+##     fitParams, fitCovariances = curve_fit(fitFunc, delays, ratios)
+##     eta = fitParams[0]
+##     S2axis = eta2S2axis(eta)
+##     sigS2axis=0
+##     S2expression = r'$S_{axis}^2 = %.2f\pm%.2f$'%(S2axis,sigS2axis)
+##     ax.errorbar(delays, ratios, fmt = 'bo', yerr = sigmas)
+##     ax.plot(delays, fitFunc(delays, fitParams[0], fitParams[1]))
+##     plt.axis('on')
+##     ax.set_xticklabels([])
+##     ax.set_yticklabels([])
+##     ax.set_aspect('equal')
+##     ax.annotate(S2expression,xy=(10,-10),xycoords='axes points',
+##                  horizontalalignment='left',verticalalignment='top')
+##     plt.subp
+
+## def plot3curves(allratios,allsigmas):
+##     delays=allratios.columns.values
+##     assignments = allratios[delays[0]].keys()
+##     plt.figure(figsize = (1,3))
+##     gs1 = gridspec.GridSpec(1,3)
+##     gs1.update(wspace=0.025,hspace=0.05)
+##     for i in range(3):
+##         ax1 = plt.subplot(gs1[i])
+##         plt.axis('on')
+
+##     plt.ylabel('Peak height ratio '+r'$\frac{I_a}{I_b}$')
+##     plt.xlabel('delay (s)')
+##     for ax in axes:
+##         plot1curve(assignments[i],allratios,allsigmas,ax)
+##         i=i+1
+    
+##     #plt.setp([a.get_yticklabels() for a in f.axes[:-1]], visible=False)
+##     plt.savefig('stuff.pdf')
+    
+
 
 def main():
     filepath = FileDirectory+testfile
