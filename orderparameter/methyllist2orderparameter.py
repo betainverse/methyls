@@ -148,13 +148,16 @@ def plot1curve(assignment,allratios,allsigmas,ax):
 def plot3curves(allratios,allsigmas):
     delays=allratios.columns.values
     assignments = allratios[delays[0]].keys()
-    f, (ax1,ax2,ax3) = plt.subplots(1,3,sharex=True,sharey=True)
-    f.subplots_adjust(wspace=0.0)
-    axes = (ax1,ax2,ax3)
+    f, axes = plt.subplots(3,1,sharex=True,sharey=True)
+    f.subplots_adjust(wspace=0.0,hspace=0)
+    #axes = (ax1,ax2,ax3)
     i=0
-    for ax in axes:
-        plot1curve(assignments[i],allratios,allsigmas,ax)
+    for ass in assignments:
+        plot1curve(ass,allratios,allsigmas,axes[i])
         i=i+1
+#    for ax in axes:
+#        plot1curve(assignments[i],allratios,allsigmas,ax)
+#        i=i+1
     big_ax=f.add_subplot(111)
     big_ax.set_axis_bgcolor('none')
     big_ax.tick_params(labelcolor='none',top='off',bottom='off',left='off',right='off')
