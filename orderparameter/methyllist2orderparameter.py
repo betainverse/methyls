@@ -139,9 +139,7 @@ def plot1curve(assignment,allratios,allsigmas,ax):
     S2expression = r'$S_{axis}^2 = %.2f\pm%.2f$'%(S2axis,sigS2axis)
     ax.errorbar(delays, ratios, fmt = 'bo', yerr = sigmas)
     ax.plot(delays, fitFunc(delays, fitParams[0], fitParams[1]))
-    labels = ax.get_xticklabels()
-    for label in labels:
-        label.set_rotation(45)
+    plt.setp(ax.get_xticklabels(),rotation='vertical')
     ax.annotate(assignment+'\n'+S2expression,xy=(10,-10),xycoords='axes points',
                 horizontalalignment='left',verticalalignment='top')
     #ax.title(assignment)
@@ -154,12 +152,14 @@ def plot3curves(allratios,allsigmas):
     f.subplots_adjust(wspace=0.0)
     axes = (ax1,ax2,ax3)
     i=0
-    plt.ylabel('Peak height ratio '+r'$\frac{I_a}{I_b}$')
-    plt.xlabel('delay (s)')
     for ax in axes:
         plot1curve(assignments[i],allratios,allsigmas,ax)
         i=i+1
-    
+    big_ax=f.add_subplot(111)
+    big_ax.set_axis_bgcolor('none')
+    big_ax.tick_params(labelcolor='none',top='off',bottom='off',left='off',right='off')
+    plt.ylabel('Peak height ratio '+r'$\frac{I_a}{I_b}$')
+    plt.xlabel('delay (s)')
     #plt.setp([a.get_yticklabels() for a in f.axes[:-1]], visible=False)
     plt.savefig('stuff.pdf')
 
