@@ -13,6 +13,7 @@ import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
 from scipy.optimize import curve_fit
 from math import pi
+from scipy.stats import norm
 
 # User-editable constant
 tauC=10.595e-9 #s, the global molecular tumbling time, (if you have not measured your protein'ss tauC, use the following website to calculate the rough value, http://nickanthis.com/tools/tau)
@@ -128,6 +129,24 @@ def plotcurve(assignment,allratios,allsigmas):
     # save plot to a file
     plt.savefig(assignment+'.pdf', bbox_inches=0, dpi=600)
 
+def S2error(assignment,allratios,allsigmas):
+    delays = allratios.columns.values
+    ratios = allratios.ix[assignment]
+    sigmas = allsigmas.ix[assignment]
+    S2s = []
+    for k in range(5000):
+        generatedratios = np.random.normal(ratios,sigmas)
+        fitParams, fitCovariances = curve_fit(fitFunc, delays, generatedratios)
+        S2s.append(eta2S2axis(fitParams[0]))
+    mu,std = norm.fit(S2s)
+    #x = np.linspace(0,1,100)
+    #pdf_fitted = norm.pdf(x,loc=mu,scale=std)
+    #plt.figure()
+    #plt.hist(S2s,30,normed=True)
+    #plt.plot(x,pdf_fitted, 'k', linewidth=2)
+    #plt.show()
+    return std    
+
 def plot1curve(assignment,allratios,allsigmas,ax):
     delays = allratios.columns.values
     ratios = allratios.ix[assignment]
@@ -135,7 +154,7 @@ def plot1curve(assignment,allratios,allsigmas,ax):
     fitParams, fitCovariances = curve_fit(fitFunc, delays, ratios)
     eta = fitParams[0]
     S2axis = eta2S2axis(eta)
-    sigS2axis=0
+    sigS2axis=S2error(assignment,allratios,allsigmas)
     S2expression = r'$S_{axis}^2 = %.2f\pm%.2f$'%(S2axis,sigS2axis)
     ax.errorbar(delays, ratios, fmt = 'bo', yerr = sigmas)
     ax.plot(delays, fitFunc(delays, fitParams[0], fitParams[1]))
@@ -148,8 +167,9 @@ def plot1curve(assignment,allratios,allsigmas,ax):
 def plot3curves(allratios,allsigmas):
     delays=allratios.columns.values
     assignments = allratios[delays[0]].keys()
-    assignments = ['M32CE-HE','M78CE-HE','M90CE-HE','M32CE-HE','M78CE-HE','M90CE-HE','M32CE-HE','M78CE-HE','M90CE-HE','M32CE-HE','M78CE-HE','M90CE-HE']
-    rows = 4
+    #assignments = ['M32CE-HE','M78CE-HE','M90CE-HE','M32CE-HE','M78CE-HE','M90CE-HE','M32CE-HE','M78CE-HE','M90CE-HE','M32CE-HE','M78CE-HE','M90CE-HE']
+    assignments = ['M32CE-HE','M78CE-HE','M90CE-HE','M32CE-HE','M78CE-HE','M90CE-HE']
+    rows = 2
     cols = 3
     f, axes = plt.subplots(rows,cols,sharex=True,sharey=True)
     f.subplots_adjust(wspace=0.05,hspace=0.05)
@@ -157,7 +177,7 @@ def plot3curves(allratios,allsigmas):
     i=0
     j=0
     for ass in assignments:
-        print ass
+#        print ass
         plot1curve(ass,allratios,allsigmas,axes[i,j])
         j=j+1
         if j>=cols:
@@ -178,6 +198,9 @@ def plot3curves(allratios,allsigmas):
     #f.set_tight_layout(True)
     #plt.setp([a.get_yticklabels() for a in f.axes[:-1]], visible=False)
     plt.savefig('stuff.pdf')
+    plt.show()
+
+    
 
 def main():
     filepath = FileDirectory+testfile
@@ -185,6 +208,7 @@ def main():
     ratios,sigmas=computeratiossigmas(Ydataframes,Ndataframes)
     plot3curves(ratios,sigmas)
     #print parsepeaklist(filepath)
+    #S2error('M32CE-HE',ratios,sigmas)
 
 main()
 
