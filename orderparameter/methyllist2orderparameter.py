@@ -134,7 +134,7 @@ def S2error(assignment,allratios,allsigmas):
     ratios = allratios.ix[assignment]
     sigmas = allsigmas.ix[assignment]
     S2s = []
-    for k in range(5000):
+    for k in range(500):
         generatedratios = np.random.normal(ratios,sigmas)
         fitParams, fitCovariances = curve_fit(fitFunc, delays, generatedratios)
         S2s.append(eta2S2axis(fitParams[0]))
@@ -146,6 +146,41 @@ def S2error(assignment,allratios,allsigmas):
     #plt.plot(x,pdf_fitted, 'k', linewidth=2)
     #plt.show()
     return std    
+
+def S2barplot(allratios,allsigmas):
+    delays=allratios.columns.values
+    assignments = allratios[delays[0]].keys()
+    S2values = []
+    S2errors = []
+    for ass in assignments:
+        print ass
+        ratios = allratios.ix[ass]
+        sigmas = allsigmas.ix[ass]
+        S2s = []
+        for k in range(500):
+            generatedratios = np.random.normal(ratios,sigmas)
+            fitParams, fitCovariances = curve_fit(fitFunc, delays, generatedratios)
+            S2s.append(eta2S2axis(fitParams[0]))
+        mu,std = norm.fit(S2s)
+        S2values.append(mu)
+        S2errors.append(std)
+    fix,ax = plt.subplots()
+    h = plt.bar(xrange(len(assignments)),
+                  S2values,
+                  color='r',
+                  label=ass,
+                  yerr=S2errors)
+    plt.subplots_adjust(bottom=0.3)
+    xticks_pos = [0.5*patch.get_width() + patch.get_xy()[0] for patch in h]
+    plt.xticks(xticks_pos, assignments, ha='right', rotation=45)
+    ax.set_ylabel('S2axis')
+    #ax.set_xticks(ind+width)
+    #ax.set_xticklabels(assignments)
+    ax.set_title(sample_name)
+    plt.savefig(sample_name+'_bar.pdf')
+    plt.show()
+    return S2values,S2errors
+        
 
 def plot1curve(assignment,allratios,allsigmas,ax):
     delays = allratios.columns.values
@@ -193,11 +228,12 @@ def plot3curves(allratios,allsigmas):
     big_ax.spines['bottom'].set_color('none')
     big_ax.spines['left'].set_color('none')
     big_ax.spines['right'].set_color('none')
+    big_ax.set_title(sample_name)
     plt.ylabel('Peak height ratio '+r'$\frac{I_a}{I_b}$')
     plt.xlabel('delay (s)',labelpad=20)
     #f.set_tight_layout(True)
     #plt.setp([a.get_yticklabels() for a in f.axes[:-1]], visible=False)
-    plt.savefig('stuff.pdf')
+    plt.savefig(sample_name+'_curves.pdf')
     plt.show()
 
     
@@ -207,6 +243,7 @@ def main():
     Ydataframes,Ndataframes = parselists(Yfiles,Nfiles)
     ratios,sigmas=computeratiossigmas(Ydataframes,Ndataframes)
     plot3curves(ratios,sigmas)
+    S2barplot(ratios,sigmas)
     #print parsepeaklist(filepath)
     #S2error('M32CE-HE',ratios,sigmas)
 
@@ -216,3 +253,4 @@ main()
 #    Plot all peaks with subplot
 #    Compute sigma
 #    Plot sigma
+#    Save files with data
