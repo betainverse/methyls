@@ -1,0 +1,37 @@
+Program assumes channel 1 = H1, channel 2 = C13, and channel 3 = N15
+Program assume that the H1 center is 4.772 ppm unless explicitly entered
+Referencing should be performed using the *_0 frequency
+Note that some values may give false results if they do not exist, such as sw3 and ni3
+DATA POINTS
+np	  =       1024 ( 512 Real +  512 Imaginary Points)
+ni	  =        200 ( 200 Real +  200 Imaginary Points) (2D)
+ni2	  =          0 (   0 Real +    0 Imaginary Points) (3D)
+ni3	  =          0 (   0 Real +    0 Imaginary Points) (4D)
+
+SWEEP WIDTH
+sw	  =  8445.9459 (Hz)
+sw1	  =  2714.9936 (Hz)
+sw2	  =     0.0000 (Hz)
+sw3	  =     0.0000 (Hz)
+
+SPECTROMETER FREQUENCY AT 0 PPM USING FOR REFERENCING
+sfrq_0	  =   599.7981 (MHz) (ACQUISITION DIMENSION)
+dfrq_0	  =   150.8190 (MHz) (1ST INDIRECTION DIMENSION)
+dfrq2_0	  =    60.7770 (MHz) (2ND INDIRECTION DIMENSION)
+
+Spectrometer frequency at the center of the spectrum
+sfrq	  =   599.8010 (MHz) (ACQUISITION DIMENSION)
+dfrq	  =   150.8220 (MHz) (1ST INDIRECTION DIMENSION)
+dfrq2	  =    60.7843 (MHz) (2ND INDIRECTION DIMENSION)
+
+THE CENTER PPM OF THE SPECTRUM USING FOR REFERENCING
+H1	  =     4.7730 (PPM)
+C13	  =    20.1355 (PPM)
+N15	  =   120.1558 (PPM)
+
+OTHER INFORMATION
+nt	  =          8 scans
+array	  =	"phase,ncyc_cp"
+gain	  =         38
+f1180	  =        "y"
+f2180	  =           
