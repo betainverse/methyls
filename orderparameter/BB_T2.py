@@ -92,20 +92,19 @@ def calcT2errors(rhDF):
     delays=rhDF.columns.values
     assignments = rhDF[delays[0]].keys()
     intassignments = [int(x[1:-3]) for x in rhDF[delays[0]].keys()]
-    T2values = []
-    T2errors = []
+    T2anderrs = {}
     for ass in assignments:
         print ass
-        mu,std = T2error(ass,rhDF)
-        T2values.append(mu)
-        T2errors.append(std)
-    return T2values,T2errors
+        T2anderrs[ass] = T2error(ass,rhDF)
+    return T2anderrs
 
 def T2barplot(rhDF):
     delays=rhDF.columns.values
     assignments = rhDF[delays[0]].keys()
     intassignments = [int(x[1:-3]) for x in rhDF[delays[0]].keys()]
-    T2values,T2errors = calcT2errors(rhDF)
+    T2anderrs = calcT2errors(rhDF)
+    T2values = [T2anderrs[ass][0] for ass in assignments]
+    T2errors = [T2anderrs[ass][1] for ass in assignments]
     fix,ax = plt.subplots()
     h = plt.bar(intassignments,
                   T2values,
@@ -121,7 +120,7 @@ def T2barplot(rhDF):
     ax.set_title(sample_name)
     plt.savefig(sample_name+'_bar.pdf')
     plt.show()
-    return T2values,T2errors
+    return T2anderrs
 
 def plotcurve(assignment,rhDF):
     # Assume delays are already floats expressed in seconds
