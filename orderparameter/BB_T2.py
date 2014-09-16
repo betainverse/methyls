@@ -12,7 +12,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
 from scipy.optimize import curve_fit
-from math import pi,ceil
+from math import pi,ceil,sqrt
 from scipy.stats import norm
 import matplotlib.lines as mpllines
 import matplotlib.ticker as mplticker
@@ -20,6 +20,7 @@ import matplotlib.ticker as mplticker
 # User-editable constant
 # Measure noise level in the st dialog for each spectrum, and take an average.
 noise = 4000
+yscalefactor = 100000
 
 # Sample Name for titles
 sample_name = '20140905 Zn AdcR T2'
@@ -62,7 +63,7 @@ def parse_rh_table(filepath):
     # the data are often separated by more spaces, so sep='\s+' is the only
     # possibility.
     # Convert ms delays to s.
-    DF = pd.read_table(filepath, sep='\s+',index_col='Assignment',engine='python',skiprows=[1])
+    DF = pd.read_table(filepath, sep='\s+',index_col='Assignment',engine='python')
     del DF['T-decay']
     del DF['SD']
     DF.rename(columns=lambda x: 0.001*float(x.split('/')[1]), inplace=True)
@@ -72,26 +73,41 @@ def parse_rh_table(filepath):
 def fitFunc(t,R2,I0):
     return I0*np.exp(-1*R2*t)
 
+#def fitFunc(t,T2,I0):
+#    return I0*np.exp(t/T2)
+
 def interpolate(delays):
-    return np.array([float(x)/1000 for x in range(int(max(delays)*1000))])
+    return np.array([float(x)/1000 for x in range(int(max(delays)*1000)) if float(x)/1000 >= min(delays)])
 
 
+
+## def T2error(assignment,rhDF):
+##     delays = rhDF.columns.values
+##     heights = rhDF.ix[assignment]
+##     T2s = []
+##     for k in range(50):
+##         generatedheights = np.random.normal(heights,noise)
+##         fitParams, fitCovariances = curve_fit(fitFunc, delays, generatedheights)
+##         T2s.append(1/fitParams[0])
+##     mu,std = norm.fit(T2s)
+##     return mu,std    
 
 def T2error(assignment,rhDF):
     delays = rhDF.columns.values
     heights = rhDF.ix[assignment]
-    T2s = []
-    for k in range(50):
-        generatedheights = np.random.normal(heights,noise)
-        fitParams, fitCovariances = curve_fit(fitFunc, delays, generatedheights)
-        T2s.append(1/fitParams[0])
-    mu,std = norm.fit(T2s)
-    return mu,std    
+    fitParams, fitCovariances = curve_fit(fitFunc, delays, heights)
+    R2 = fitParams[0]
+    I0 = fitParams[1]
+    T2 = 1/R2
+    dR = sqrt(fitCovariances[0,0])
+    dT = dR*T2/R2
+    return T2,dT,I0
+
 
 def calcT2errors(rhDF):
     delays=rhDF.columns.values
     assignments = rhDF[delays[0]].keys()
-    intassignments = [int(x[1:-3]) for x in rhDF[delays[0]].keys()]
+    #intassignments = [int(x[1:-3]) for x in rhDF[delays[0]].keys()]
     T2anderrs = {}
     for ass in assignments:
         print ass
@@ -144,70 +160,100 @@ def plotcurve(assignment,rhDF):
     plt.show()
     #plt.savefig(assignment+'.pdf', bbox_inches=0, dpi=600)
 
-def plot1curve(assignment,rhDF,T2errors,ax):
+def plot1curve(assignment,rhDF,ax):
     delays = rhDF.columns.values
     heights = rhDF.ix[assignment]
-    sigmas = allsigmas.ix[assignment]
-    fitParams, fitCovariances = curve_fit(fitFunc, delays, ratios)
-    eta = fitParams[0]
-    S2axis = eta2S2axis(eta)
-    sigS2axis=S2error(assignment,rhDF,allsigmas)
-    S2expression = r'$S_{axis}^2 = %.2f\pm%.2f$'%(S2axis,sigS2axis)
-    ax.errorbar(delays, ratios, fmt = 'bo', yerr = sigmas)
-    ax.plot(delays, fitFunc(delays, fitParams[0], fitParams[1]))
+    yvalues = heights/yscalefactor
+    T2,dT,I0 = T2error(assignment,rhDF)
+    T2ms = T2*1000
+    dTms = dT*1000
+    T2expression = r'$%.2f\pm%.2f  ms$'%(T2ms,dTms)
+    Assexpression = '%s: T2 ='%assignment[0:-3]
+    xvalues = interpolate(delays)
+    ax.errorbar(delays, yvalues, fmt = 'b.', yerr = noise/yscalefactor)
+    ax.plot(xvalues, fitFunc(xvalues, 1/T2, I0)/yscalefactor)
     plt.setp(ax.get_xticklabels(),rotation='vertical')
-    ax.annotate(assignment+'\n'+S2expression,xy=(10,-10),xycoords='axes points',
+    ax.annotate(Assexpression+'\n'+T2expression,xy=(15,-10),xycoords='axes points',
                 horizontalalignment='left',verticalalignment='top')
+
     #ax.title(assignment)
     
     
-def plot3curves(rhDF,T2errors):
+def plot3curves(rhDF):
     delays=rhDF.columns.values
     assignments = rhDF[delays[0]].keys()
-    rows = 30
-    cols = 5
+    rows = 3
+    cols = 3
+    pages = ceil(len(assignments)/(rows*cols))
     f, axes = plt.subplots(rows,cols,sharex=True,sharey=True)
     f.subplots_adjust(wspace=0.05,hspace=0.05)
     #axes = (ax1,ax2,ax3)
     i=0
     j=0
+    row=0
+    col=0
+    page=0
     for ass in assignments:
-#        print ass
-        plot1curve(ass,rhDF,errors,axes[i,j])
-        j=j+1
-        if j>=cols:
-            j=0
-            i=i+1
-#    for ax in axes:
-#        plot1curve(assignments[i],rhDF,allsigmas,ax)
-#        i=i+1
-    big_ax=f.add_subplot(111)
-    big_ax.set_axis_bgcolor('none')
-    big_ax.tick_params(labelcolor='none',top='off',bottom='off',left='off',right='off')
-    big_ax.spines['top'].set_color('none')
-    big_ax.spines['bottom'].set_color('none')
-    big_ax.spines['left'].set_color('none')
-    big_ax.spines['right'].set_color('none')
-    big_ax.set_title(sample_name)
-    plt.ylabel('Peak height')
-    plt.xlabel('delay (s)',labelpad=20)
-    #f.set_tight_layout(True)
-    #plt.setp([a.get_yticklabels() for a in f.axes[:-1]], visible=False)
-    plt.savefig(sample_name+'_curves.pdf')
-    plt.show()
+        plot1curve(ass,rhDF,axes[row,col])
+        col=col+1
+        if col>=cols:
+            col=0
+            row=row+1
+        if row >=rows:
+            big_ax=f.add_subplot(111)
+            big_ax.set_axis_bgcolor('none')
+            big_ax.tick_params(labelcolor='none',top='off',bottom='off',left='off',right='off')
+            big_ax.spines['top'].set_color('none')
+            big_ax.spines['bottom'].set_color('none')
+            big_ax.spines['left'].set_color('none')
+            big_ax.spines['right'].set_color('none')
+            big_ax.set_title(sample_name)
+            plt.ylabel('Peak height / %d'%yscalefactor)
+            plt.xlabel('delay (s)',labelpad=20)
+            #f.set_tight_layout(True)
+            #plt.setp([a.get_yticklabels() for a in f.axes[:-1]], visible=False)
+            plt.savefig('%s_curves_%d.pdf'%(sample_name,page))
+            #plt.show()            
+            row=0
+            page=page+1
+            f, axes = plt.subplots(rows,cols,sharex=True,sharey=True)
+            f.subplots_adjust(wspace=0.05,hspace=0.05)
+        if page>=pages:
+            break
+        
+##     for ass in assignments:
+## #        print ass
+##         plot1curve(ass,rhDF,axes[i,j])
+##         j=j+1
+##         if j>=cols:
+##             j=0
+##             i=i+1
+##         if i >= rows:
+##             break
+## #    for ax in axes:
+## #        plot1curve(assignments[i],rhDF,allsigmas,ax)
+## #        i=i+1
+##     big_ax=f.add_subplot(111)
+##     big_ax.set_axis_bgcolor('none')
+##     big_ax.tick_params(labelcolor='none',top='off',bottom='off',left='off',right='off')
+##     big_ax.spines['top'].set_color('none')
+##     big_ax.spines['bottom'].set_color('none')
+##     big_ax.spines['left'].set_color('none')
+##     big_ax.spines['right'].set_color('none')
+##     big_ax.set_title(sample_name)
+##     plt.ylabel('Peak height / %d'%yscalefactor)
+##     plt.xlabel('delay (s)',labelpad=20)
+##     #f.set_tight_layout(True)
+##     #plt.setp([a.get_yticklabels() for a in f.axes[:-1]], visible=False)
+##     plt.savefig(sample_name+'_curves.pdf')
+##     plt.show()
 
     
 
 def main():
-    #filepath = FileDirectory+testfile
-    #Ydataframes,Ndataframes = parselists(Yfiles,Nfiles)
-    #ratios,sigmas=computeratiossigmas(Ydataframes,Ndataframes)
-    #plot3curves(ratios,sigmas)
-    #S2barplot(ratios,sigmas)
-    #print parsepeaklist(filepath)
-    #S2error('M32CE-HE',ratios,sigmas)
     rhDF = parse_rh_table(rhTable)
     #plotcurve('F137N-H',rhDF)
+    plot3curves(rhDF)
     T2barplot(rhDF)
 main()
 
