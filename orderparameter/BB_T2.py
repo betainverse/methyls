@@ -173,27 +173,36 @@ def plot1curve(assignment,rhDF,ax):
     ax.errorbar(delays, yvalues, fmt = 'b.', yerr = noise/yscalefactor)
     ax.plot(xvalues, fitFunc(xvalues, 1/T2, I0)/yscalefactor)
     plt.setp(ax.get_xticklabels(),rotation='vertical')
-    ax.annotate(Assexpression+'\n'+T2expression,xy=(15,-10),xycoords='axes points',
+    ax.annotate(Assexpression+'\n'+T2expression,xy=(5,-10),xycoords='axes points',
                 horizontalalignment='left',verticalalignment='top')
 
+def plotfakecurve(assignment,rhDF,ax):
+    delays = rhDF.columns.values
+    heights = rhDF.ix[assignment]
+    yvalues = heights/yscalefactor
+    #T2,dT,I0 = T2error(assignment,rhDF)
+    #xvalues = interpolate(delays)
+    ax.errorbar(delays, yvalues, fmt = 'w.', yerr = noise/yscalefactor)
+    #ax.plot(xvalues, fitFunc(xvalues, 1/T2, I0)/yscalefactor)
+    plt.setp(ax.get_xticklabels(),rotation='vertical')
+
     #ax.title(assignment)
-    
     
 def plot3curves(rhDF):
     delays=rhDF.columns.values
     assignments = rhDF[delays[0]].keys()
-    rows = 3
-    cols = 3
-    pages = ceil(len(assignments)/(rows*cols))
+    rows = 6
+    cols = 5
+    pages = ceil(float(len(assignments))/(rows*cols))
     f, axes = plt.subplots(rows,cols,sharex=True,sharey=True)
+    f.set_size_inches(8.5,11)
     f.subplots_adjust(wspace=0.05,hspace=0.05)
     #axes = (ax1,ax2,ax3)
-    i=0
-    j=0
     row=0
     col=0
     page=0
     for ass in assignments:
+        #print ass, row, col, page
         plot1curve(ass,rhDF,axes[row,col])
         col=col+1
         if col>=cols:
@@ -217,9 +226,30 @@ def plot3curves(rhDF):
             row=0
             page=page+1
             f, axes = plt.subplots(rows,cols,sharex=True,sharey=True)
+            f.set_size_inches(8.5,11)
             f.subplots_adjust(wspace=0.05,hspace=0.05)
-        if page>=pages:
-            break
+    maxcharts = rows*cols*pages
+    fakecharts = int(maxcharts-len(assignments))
+    for i in range(fakecharts):
+        plotfakecurve(ass,rhDF,axes[row,col])
+        col=col+1
+        if col>=cols:
+            col=0
+            row=row+1
+    big_ax=f.add_subplot(111)
+    big_ax.set_axis_bgcolor('none')
+    big_ax.tick_params(labelcolor='none',top='off',bottom='off',left='off',right='off')
+    big_ax.spines['top'].set_color('none')
+    big_ax.spines['bottom'].set_color('none')
+    big_ax.spines['left'].set_color('none')
+    big_ax.spines['right'].set_color('none')
+    big_ax.set_title(sample_name)
+    plt.ylabel('Peak height / %d'%yscalefactor)
+    plt.xlabel('delay (s)',labelpad=20)
+    plt.savefig('%s_curves_%d.pdf'%(sample_name,page))
+    plt.show()            
+    
+
         
 ##     for ass in assignments:
 ## #        print ass
