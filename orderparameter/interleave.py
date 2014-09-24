@@ -5,10 +5,8 @@ megaleave program, then arranges all the output files into several experiment
 directories. This program must be invoked from the same directory as the 
 procpar and fid files.
 
-WARNING: This script assumes you don't have any repeat delay values!!!
-
 Usage:
-interleave.py output_prefix number_of_expts
+interleave.py output_prefix
 """
 import sys
 from subprocess import call
@@ -40,6 +38,7 @@ def get_params():
         elif lines[i][0:7] == 'relaxT ':
             delays_in_seconds = lines[i+1].split()[1:] 
             params['delays'] = [seconds2ms(s) for s in delays_in_seconds]
+            params['num'] = lines[i+1].split()[0]
     return params
                 
 def run_megaleave(params):
@@ -48,7 +47,7 @@ def run_megaleave(params):
 def rearrange_files(params):
     for i in range(int(params['num'])):
         orig_filename = '%s_%s'%(params['output'],i)
-        new_filename = '%s_%s.fid'%(params['output'],params['delays'][i])
+        new_filename = '%s_%s_%d.fid'%(params['delays'][i],params['output'],i)
         system("/bin/mkdir %s"%new_filename)
         system("/bin/cp %s %s/fid"%(orig_filename,new_filename))
         system("/bin/cp log %s/log"%new_filename)
@@ -57,16 +56,15 @@ def rearrange_files(params):
         
 
 def main():
-    if len(sys.argv)!= 3:
+    if len(sys.argv)!= 2:
         print "\nUsage:"
-        print "interleave.py output_prefix number_of_expts"
-        print "\nWARNING: This script assumes you don't have any repeat delay values!!!\n"
+        print "interleave.py output_prefix "
+        #print "\nWARNING: This script assumes you don't have any repeat delay values!!!\n"
         return
     outputname = sys.argv[1]    
-    numexpts = sys.argv[2]
+    #numexpts = sys.argv[2]
     params = get_params()
     params['output'] = outputname
-    params['num'] = numexpts
     params['path'] = path_to_megaleave
     run_megaleave(params)
     rearrange_files(params)
