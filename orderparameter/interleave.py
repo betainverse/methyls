@@ -44,7 +44,8 @@ def get_params():
             params['delays'] = [seconds2ms(s) for s in delays_in_seconds]
             params['num'] = lines[i+1].split()[0]
         elif lines[i][0:8] == 'ncyc_cp ': 
-            params['delays'] = lines[i+1].split()[1:] # not really "delays" 
+            params['delays'] = lines[i+1].split()[1:] # not really "delays"
+            params['num'] = lines[i+1].split()[0] 
     return params
                 
 def run_megaleave(params):
