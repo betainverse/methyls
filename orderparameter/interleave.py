@@ -33,12 +33,18 @@ def get_params():
                 params['flg'] = '0'
             elif lines[i+1].split()[1] == '\"relaxT,phase\"':
                 params['flg'] = '1'
+            elif lines[i+1].split()[1] == '\"phase,ncyc_cp\"': 
+                params['flg'] = '0'
+            elif lines[i+1].split()[1] == '\"ncyc_cp,phase\"': 
+               params['flg'] = '1' 
             else:
                 print 'array not found'
         elif lines[i][0:7] == 'relaxT ':
             delays_in_seconds = lines[i+1].split()[1:] 
             params['delays'] = [seconds2ms(s) for s in delays_in_seconds]
             params['num'] = lines[i+1].split()[0]
+        elif lines[i][0:8] == 'ncyc_cp ': 
+            params['delays'] = lines[i+1].split()[1:] # not really "delays" 
     return params
                 
 def run_megaleave(params):
@@ -49,7 +55,7 @@ def rearrange_files(params):
         orig_filename = '%s_%s'%(params['output'],i)
         new_filename = '%s_%s_%d.fid'%(params['delays'][i],params['output'],i)
         system("/bin/mkdir %s"%new_filename)
-        system("/bin/cp %s %s/fid"%(orig_filename,new_filename))
+        system("/bin/mv %s %s/fid"%(orig_filename,new_filename))
         system("/bin/cp log %s/log"%new_filename)
         system("/bin/cp text %s/text"%new_filename)
         system("/bin/cp procpar %s/procpar"%new_filename)
