@@ -29,23 +29,33 @@ monte_carlo_iterations = 50 #Use 5000 for real, 50 to test
 FileDirectory = '/Users/edmonds/git/methyls/orderparameter/apo_CzrA_peaklists/'
 #testfile = '20140624_apoCzra_DQ_y_40c_ph6_2ms.list'
 # Filenames for Yes condition, keyed by delay length (seconds)
-Yfiles = {0.0030:'20140928_apo_WT_CzrA_ILVAM_DQy_40c_pd6_3ms_2.list', 
-          0.0050:'20140928_apo_WT_CzrA_ILVAM_DQy_40c_pd6_5ms_2.list', 
-          0.0080:'20140928_apo_WT_CzrA_ILVAM_DQy_40c_pd6_8ms_2.list', 
-          0.0120:'20140928_apo_WT_CzrA_ILVAM_DQy_40c_pd6_12ms_2.list',
-          0.0170:'20140928_apo_WT_CzrA_ILVAM_DQy_40c_pd6_17ms_2.list',
-          0.0220:'20140928_apo_WT_CzrA_ILVAM_DQy_40c_pd6_22ms_2.list',
-          0.0270:'20140928_apo_WT_CzrA_ILVAM_DQy_40c_pd6_27ms_2.list'}
+Yfiles = {0.0030:'20140928_apo_WT_CzrA_ILVAM_DQy_40c_pd6_3ms.list', 
+          0.0050:'20140928_apo_WT_CzrA_ILVAM_DQy_40c_pd6_5ms.list', 
+          0.0080:'20140928_apo_WT_CzrA_ILVAM_DQy_40c_pd6_8ms.list', 
+          0.0120:'20140928_apo_WT_CzrA_ILVAM_DQy_40c_pd6_12ms.list',
+          0.0170:'20140928_apo_WT_CzrA_ILVAM_DQy_40c_pd6_17ms.list',
+          0.0220:'20140928_apo_WT_CzrA_ILVAM_DQy_40c_pd6_22ms.list',
+          0.0270:'20140928_apo_WT_CzrA_ILVAM_DQy_40c_pd6_27ms.list'}
 
 # Filenames for No condition, keyed by delay length (seconds)
-Nfiles = {0.0030:'20140928_apo_WT_CzrA_ILVAM_DQn_40c_pd6_3ms_2.list', 
-          0.0050:'20140928_apo_WT_CzrA_ILVAM_DQn_40c_pd6_5ms_2.list', 
-          0.0080:'20140928_apo_WT_CzrA_ILVAM_DQn_40c_pd6_8ms_2.list', 
-          0.0120:'20140928_apo_WT_CzrA_ILVAM_DQn_40c_pd6_12ms_2.list',
-          0.0170:'20140928_apo_WT_CzrA_ILVAM_DQn_40c_pd6_17ms_2.list',
-          0.0220:'20140928_apo_WT_CzrA_ILVAM_DQn_40c_pd6_22ms_2.list',
-          0.0270:'20140928_apo_WT_CzrA_ILVAM_DQn_40c_pd6_27ms_2.list'}
+Nfiles = {0.0030:'20140928_apo_WT_CzrA_ILVAM_DQn_40c_pd6_3ms.list', 
+          0.0050:'20140928_apo_WT_CzrA_ILVAM_DQn_40c_pd6_5ms.list', 
+          0.0080:'20140928_apo_WT_CzrA_ILVAM_DQn_40c_pd6_8ms.list', 
+          0.0120:'20140928_apo_WT_CzrA_ILVAM_DQn_40c_pd6_12ms.list',
+          0.0170:'20140928_apo_WT_CzrA_ILVAM_DQn_40c_pd6_17ms.list',
+          0.0220:'20140928_apo_WT_CzrA_ILVAM_DQn_40c_pd6_22ms.list',
+          0.0270:'20140928_apo_WT_CzrA_ILVAM_DQn_40c_pd6_27ms.list'}
 
+# Noise level for both yes and no conditions. If you don't have the same noise
+# in both spectra, you need to re-record the specra.
+# In sparky st dialog, enter 10000 for the number of points and hit [Recompute]
+Noise = {0.0030:1420,
+         0.0050:4300,
+         0.0080:1400,
+         0.0120:3460,
+         0.0170:2000,
+         0.0220:2440,
+         0.0270:1610}
 
 def parsepeaklist(filepath):
     # Given the path to a file, return a pandas DataFrame object indexed by
@@ -56,7 +66,7 @@ def parsepeaklist(filepath):
     # skiprows=[1] removes the empty line after the header found in typical
     # sparky peaklist files.
     # discard the w1 and w2 columns. 
-    return pd.read_table(filepath, sep='\s\s+',index_col='Assignment',engine='python',skiprows=[1])[['Data Height','S/N']]
+    return pd.read_table(filepath, sep='\s\s+',index_col='Assignment',engine='python',skiprows=[1])[['Data Height']]
 
 def parselists(Yfiles, Nfiles):
     # Given a pair of dictionaries of filenames for each delay length in the
@@ -80,25 +90,27 @@ def writeratiossigmas(ratios,sigmas):
     assignments = ratios.transpose().keys()
     pages = int(ceil(float(len(assignments))/methylsperpage))
     concatenated = pd.concat([ratios,sigmas],keys=['ratio','sigma']).swaplevel(0,1).sortlevel(0).transpose()
+    concatenated.to_excel(sample_name+'.xls')
     for i in range(pages):
         first = i*methylsperpage
         last = (i+1)*methylsperpage
         outfile = '%s_%d.csv'%(sample_name,i)
         concatenated[assignments[first:min(last,len(assignments))]].to_csv(outfile)
 
-def computeratiossigmas(Yframes,Nframes):
+def computeratiossigmas(Yframes,Nframes,Noise):
     # Recombine DataFrames to obtain new DataFrame objects containing
     # peak height ratios and error bars for each peak at each delay.
     delays = Yframes.keys()
     delays.sort()
     ratios = DataFrame()
     ratios.columns.names = ['Delay']
-    #ratios.name = 'ratios'
     sigmas = DataFrame()
     sigmas.columns.names = ['Delay']
     for d in delays:
         ratios[d] = -1*Yframes[d]['Data Height']/Nframes[d]['Data Height']
-        sigmas[d] = ratios[d]*np.sqrt(1/Yframes[d]['S/N']**2+1/Nframes[d]['S/N']**2)
+        sigmas[d] = abs(ratios[d])*np.sqrt((Noise[d]/Yframes[d]['Data Height'])**2+(Noise[d]/Nframes[d]['Data Height'])**2)
+        # if there are any negative numbers in ratios, set them to zero:
+        ratios.loc[ratios[d]<0,d] = 0
     writeratiossigmas(ratios,sigmas)
     return ratios,sigmas
 
@@ -161,6 +173,7 @@ def S2barplot(allratios,allsigmas):
     assignments = allratios[delays[0]].keys()
     S2values = []
     S2errors = []
+    print "Preparing bar chart:"
     for ass in assignments:
         print ass
         ratios = allratios.ix[ass]
@@ -173,7 +186,7 @@ def S2barplot(allratios,allsigmas):
         mu,std = norm.fit(S2s)
         S2values.append(mu)
         S2errors.append(std)
-    fix,ax = plt.subplots(figsize=(10,3))
+    fix,ax = plt.subplots(figsize=(15,3))
     h = plt.bar(xrange(len(assignments)),
                   S2values,
                   color='r',
@@ -188,12 +201,14 @@ def S2barplot(allratios,allsigmas):
     ax.set_title(sample_name)
     plt.savefig(sample_name+'_bar.pdf')
     plt.show()
-    outfile = sample_name+'_bar.txt'
-    openfile = open(outfile,'w')
-    openfile.write('Assignment\tS2\tS2error\n')
-    for i in range(len(assignments)):
-        openfile.write('%s\t%0.8f\t%0.8f\n'%(assignments[i],S2values[i],S2errors[i]))
-    openfile.close()
+    S2errorDF = DataFrame({'S2':S2values,'S2error':S2errors}, index=assignments)
+    S2errorDF.to_excel(sample_name+'_S2.xls')
+    #outfile = sample_name+'_bar.txt'
+    #openfile = open(outfile,'w')
+    #openfile.write('Assignment\tS2\tS2error\n')
+    #for i in range(len(assignments)):
+    #    openfile.write('%s\t%0.8f\t%0.8f\n'%(assignments[i],S2values[i],S2errors[i]))
+    #openfile.close()
     return S2values,S2errors
         
 def plotfakecurve(assignment,allratios,allsigmas,ax):
@@ -241,8 +256,9 @@ def plot3curves(allratios,allsigmas):
     row=0
     col=0
     page=0
+    print "Computing curves:"
     for ass in assignments:
-        #print ass, row, col, page
+        print ass
         plot1curve(ass,allratios,allsigmas,axes[row,col])
         col=col+1
         if col>=cols:
@@ -294,7 +310,7 @@ def plot3curves(allratios,allsigmas):
 def main():
     #filepath = FileDirectory+testfile
     Ydataframes,Ndataframes = parselists(Yfiles,Nfiles)
-    ratios,sigmas=computeratiossigmas(Ydataframes,Ndataframes)
+    ratios,sigmas=computeratiossigmas(Ydataframes,Ndataframes,Noise)
     plot3curves(ratios,sigmas)
     S2barplot(ratios,sigmas)
     #print parsepeaklist(filepath)
