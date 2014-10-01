@@ -1,6 +1,10 @@
 #!/bin/csh
 
-# Process in the outer .fid directory using 
+# Process in the outer .fid directory
+# 
+# Optimize phase, etc by running first on your favorite directory:
+# ./HSQC.com favorite.fid
+# Then run on all the files:
 # ./HSQC.com *.fid
 
 #mkdir processed
@@ -29,7 +33,7 @@ nmrPipe -in ./$i/test.fid                                  \
 | nmrPipe -fn SP -off 0.45 -end 0.98 -c 1 -pow 2  \
 | nmrPipe -fn ZF -auto      \
 | nmrPipe -fn FT          \
-| nmrPipe -fn PS -p0 167.0  -p1 14 -di    \
+| nmrPipe -fn PS -p0 0.0  -p1 0 -di    \
 #| nmrPipe -fn EXT -left -sw \
 | nmrPipe -fn EXT -x1 6.4ppm -xn 9.6ppm -sw    \
 | nmrPipe -fn TP     \
@@ -44,6 +48,6 @@ nmrPipe -in ./$i/test.fid                                  \
 | nmrPipe -fn POLY -auto \
 -out ./$i/test.ft2 -ov -verb 
 
-pipe2ucsf ./$i/test.ft2   ./processed/$filename.ucsf
+pipe2ucsf ./$i/test.ft2   $filename.ucsf
 
 end
