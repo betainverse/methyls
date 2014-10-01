@@ -20,7 +20,8 @@ tauC=10.595e-9 #s, the global molecular tumbling time, (if you have not measured
 
 # Sample Name for titles
 sample_name = '20140928 ILVAM apo CzrA'
-methylsperpage = 3
+methylsperpage = 9
+monte_carlo_iterations = 50 #Use 5000 for real, 50 to test
 
 # Input file information
 
@@ -142,7 +143,7 @@ def S2error(assignment,allratios,allsigmas):
     ratios = allratios.ix[assignment]
     sigmas = allsigmas.ix[assignment]
     S2s = []
-    for k in range(500):
+    for k in range(monte_carlo_iterations):
         generatedratios = np.random.normal(ratios,sigmas)
         fitParams, fitCovariances = curve_fit(fitFunc, delays, generatedratios)
         S2s.append(eta2S2axis(fitParams[0]))
@@ -165,7 +166,7 @@ def S2barplot(allratios,allsigmas):
         ratios = allratios.ix[ass]
         sigmas = allsigmas.ix[ass]
         S2s = []
-        for k in range(50): #5000 for real runs
+        for k in range(monte_carlo_iterations): #5000 for real runs
             generatedratios = np.random.normal(ratios,sigmas)
             fitParams, fitCovariances = curve_fit(fitFunc, delays, generatedratios)
             S2s.append(eta2S2axis(fitParams[0]))
