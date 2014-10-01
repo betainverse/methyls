@@ -86,16 +86,16 @@ def parselists(Yfiles, Nfiles):
 #        print Ndataframes[d]
     return Ydataframes,Ndataframes
 
-def writeratiossigmas(ratios,sigmas):
-    assignments = ratios.transpose().keys()
-    pages = int(ceil(float(len(assignments))/methylsperpage))
-    concatenated = pd.concat([ratios,sigmas],keys=['ratio','sigma']).swaplevel(0,1).sortlevel(0).transpose()
-    concatenated.to_excel(sample_name+'.xls')
-    for i in range(pages):
-        first = i*methylsperpage
-        last = (i+1)*methylsperpage
-        outfile = '%s_%d.csv'%(sample_name,i)
-        concatenated[assignments[first:min(last,len(assignments))]].to_csv(outfile)
+## def writeratiossigmas(ratios,sigmas):
+##     assignments = ratios.transpose().keys()
+##     pages = int(ceil(float(len(assignments))/methylsperpage))
+##     concatenated = pd.concat([ratios,sigmas],keys=['ratio','sigma']).swaplevel(0,1).sortlevel(0).transpose()
+##     concatenated.to_excel(sample_name+'.xls')
+##     for i in range(pages):
+##         first = i*methylsperpage
+##         last = (i+1)*methylsperpage
+##         outfile = '%s_%d.csv'%(sample_name,i)
+##         concatenated[assignments[first:min(last,len(assignments))]].to_csv(outfile)
 
 def computeratiossigmas(Yframes,Nframes,Noise):
     # Recombine DataFrames to obtain new DataFrame objects containing
@@ -111,7 +111,7 @@ def computeratiossigmas(Yframes,Nframes,Noise):
         sigmas[d] = abs(ratios[d])*np.sqrt((Noise[d]/Yframes[d]['Data Height'])**2+(Noise[d]/Nframes[d]['Data Height'])**2)
         # if there are any negative numbers in ratios, set them to zero:
         ratios.loc[ratios[d]<0,d] = 0
-    writeratiossigmas(ratios,sigmas)
+#    writeratiossigmas(ratios,sigmas)
     return ratios,sigmas
 
 def fitFunc(t, eta, delta):
@@ -168,29 +168,58 @@ def S2error(assignment,allratios,allsigmas):
     #plt.show()
     return std    
 
-def S2barplot(allratios,allsigmas):
-    delays=allratios.columns.values
-    assignments = allratios[delays[0]].keys()
-    S2values = []
-    S2errors = []
-    print "Preparing bar chart:"
-    for ass in assignments:
-        print ass
-        ratios = allratios.ix[ass]
-        sigmas = allsigmas.ix[ass]
-        S2s = []
-        for k in range(monte_carlo_iterations): #5000 for real runs
-            generatedratios = np.random.normal(ratios,sigmas)
-            fitParams, fitCovariances = curve_fit(fitFunc, delays, generatedratios)
-            S2s.append(eta2S2axis(fitParams[0]))
-        mu,std = norm.fit(S2s)
-        S2values.append(mu)
-        S2errors.append(std)
-    fix,ax = plt.subplots(figsize=(15,3))
+## def S2barplot(allratios,allsigmas):
+##     delays=allratios.columns.values
+##     assignments = allratios[delays[0]].keys()
+##     S2values = []
+##     S2errors = []
+##     print "Preparing bar chart:"
+##     for ass in assignments:
+##         print ass
+##         ratios = allratios.ix[ass]
+##         sigmas = allsigmas.ix[ass]
+##         S2s = []
+##         for k in range(monte_carlo_iterations): #5000 for real runs
+##             generatedratios = np.random.normal(ratios,sigmas)
+##             fitParams, fitCovariances = curve_fit(fitFunc, delays, generatedratios)
+##             S2s.append(eta2S2axis(fitParams[0]))
+##         mu,std = norm.fit(S2s)
+##         S2values.append(mu)
+##         S2errors.append(std)
+##     fix,ax = plt.subplots(figsize=(20,5))
+##     h = plt.bar(xrange(len(assignments)),
+##                   S2values,
+##                   color='r',
+##                   label=ass,
+##                   yerr=S2errors)
+##     plt.subplots_adjust(bottom=0.3)
+##     xticks_pos = [0.5*patch.get_width() + patch.get_xy()[0] for patch in h]
+##     plt.xticks(xticks_pos, assignments, ha='right', rotation=45)
+##     ax.set_ylabel('S2axis')
+##     #ax.set_xticks(ind+width)
+##     #ax.set_xticklabels(assignments)
+##     ax.set_title(sample_name)
+##     plt.savefig(sample_name+'_bar.pdf')
+##     plt.show()
+##     #S2errorDF = DataFrame({'S2':S2values,'S2error':S2errors}, index=assignments)
+##     #S2errorDF.to_excel(sample_name+'_S2.xls')
+##     #outfile = sample_name+'_bar.txt'
+##     #openfile = open(outfile,'w')
+##     #openfile.write('Assignment\tS2\tS2error\n')
+##     #for i in range(len(assignments)):
+##     #    openfile.write('%s\t%0.8f\t%0.8f\n'%(assignments[i],S2values[i],S2errors[i]))
+##     #openfile.close()
+##     #return S2values,S2errors
+
+def S2barplot(S2errorDF):
+    S2values = S2errorDF['S2'].values
+    assignments = S2errorDF.index
+    S2errors = S2errorDF['S2error'].values
+    fix,ax = plt.subplots(figsize=(20,5))
     h = plt.bar(xrange(len(assignments)),
                   S2values,
                   color='r',
-                  label=ass,
+                  label=assignments,
                   yerr=S2errors)
     plt.subplots_adjust(bottom=0.3)
     xticks_pos = [0.5*patch.get_width() + patch.get_xy()[0] for patch in h]
@@ -201,15 +230,7 @@ def S2barplot(allratios,allsigmas):
     ax.set_title(sample_name)
     plt.savefig(sample_name+'_bar.pdf')
     plt.show()
-    S2errorDF = DataFrame({'S2':S2values,'S2error':S2errors}, index=assignments)
-    S2errorDF.to_excel(sample_name+'_S2.xls')
-    #outfile = sample_name+'_bar.txt'
-    #openfile = open(outfile,'w')
-    #openfile.write('Assignment\tS2\tS2error\n')
-    #for i in range(len(assignments)):
-    #    openfile.write('%s\t%0.8f\t%0.8f\n'%(assignments[i],S2values[i],S2errors[i]))
-    #openfile.close()
-    return S2values,S2errors
+
         
 def plotfakecurve(assignment,allratios,allsigmas,ax):
     delays = allratios.columns.values
@@ -238,6 +259,7 @@ def plot1curve(assignment,allratios,allsigmas,ax):
     plt.setp(ax.get_xticklabels(),rotation='vertical')
     ax.annotate(assignment+'\n'+S2expression,xy=(10,-10),xycoords='axes points',
                 horizontalalignment='left',verticalalignment='top')
+    return S2axis, sigS2axis
     #ax.title(assignment)
     
     
@@ -250,16 +272,20 @@ def plot3curves(allratios,allsigmas):
     cols = 4
     pages = ceil(float(len(assignments))/(rows*cols))
     f, axes = plt.subplots(rows,cols,sharex=True,sharey=True)
-    f.set_size_inches(8.5,11)
+    f.set_size_inches(8,10.5)
     f.subplots_adjust(wspace=0.05,hspace=0.05)
     #axes = (ax1,ax2,ax3)
     row=0
     col=0
     page=0
+    S2values = []
+    S2errors = []
     print "Computing curves:"
     for ass in assignments:
         print ass
-        plot1curve(ass,allratios,allsigmas,axes[row,col])
+        S2,S2err = plot1curve(ass,allratios,allsigmas,axes[row,col])
+        S2values.append(S2)
+        S2errors.append(S2err)
         col=col+1
         if col>=cols:
             col=0
@@ -282,7 +308,7 @@ def plot3curves(allratios,allsigmas):
             row=0
             page=page+1
             f, axes = plt.subplots(rows,cols,sharex=True,sharey=True)
-            f.set_size_inches(8.5,11)
+            f.set_size_inches(8,10.5)
             f.subplots_adjust(wspace=0.05,hspace=0.05)
     maxcharts = rows*cols*pages
     fakecharts = int(maxcharts-len(assignments))
@@ -303,6 +329,10 @@ def plot3curves(allratios,allsigmas):
     plt.ylabel('Peak height ratio '+r'$\frac{I_a}{I_b}$')
     plt.xlabel('delay (s)',labelpad=20)
     plt.savefig('%s_curves_%d.pdf'%(sample_name,page))
+
+    S2errorDF = DataFrame({'S2':S2values,'S2error':S2errors}, index=assignments)
+    S2errorDF.to_excel(sample_name+'_S2.xls')
+    return S2errorDF
     #plt.show()            
     
     
@@ -311,8 +341,9 @@ def main():
     #filepath = FileDirectory+testfile
     Ydataframes,Ndataframes = parselists(Yfiles,Nfiles)
     ratios,sigmas=computeratiossigmas(Ydataframes,Ndataframes,Noise)
-    plot3curves(ratios,sigmas)
-    S2barplot(ratios,sigmas)
+    S2errorDF = plot3curves(ratios,sigmas)
+    #S2barplot(ratios,sigmas)
+    S2barplot(S2errorDF)
     #print parsepeaklist(filepath)
     #S2error('M32CE-HE',ratios,sigmas)
 
