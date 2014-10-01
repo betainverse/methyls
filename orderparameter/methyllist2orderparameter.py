@@ -126,30 +126,6 @@ def eta2S2axis(eta):
     S2axis=(10.0/9)*((4*pi/mu0)**2)*4*(rHH**6)*eta/(tauC*(h/(2*pi))**2*gammaH**4)
     return S2axis
 
-## def plotcurve(assignment,allratios,allsigmas):
-##     delays = allratios.columns.values
-##     ratios = allratios.ix[assignment]
-##     sigmas = allsigmas.ix[assignment]
-
-##     fitParams, fitCovariances = curve_fit(fitFunc, delays, ratios)
-##     eta = fitParams[0]
-##     S2axis = eta2S2axis(eta)
-    
-##     print 'S2axis: %.2f'%S2axis
-##     print ' fit coefficients [eta,delta]:\n', fitParams
-##     print ' Covariance matrix:\n', fitCovariances
-##     plt.ylabel('Peak height ratio '+r'$\frac{I_a}{I_b}$')
-##     plt.xlabel('delay (s)')
-##     sigS2axis=0
-##     S2expression = r'$S_{axis}^2 = %.2f\pm%.2f$'%(S2axis,sigS2axis)
-##     plt.title(assignment)
-##     plt.errorbar(delays, ratios, fmt = 'bo', yerr = sigmas)
-##     plt.plot(delays, fitFunc(delays, fitParams[0], fitParams[1]))
-##     plt.annotate(S2expression,xy=(10,-10),xycoords='axes points',
-##                  horizontalalignment='left',verticalalignment='top')
-##     # save plot to a file
-##     plt.savefig(assignment+'.pdf', bbox_inches=0, dpi=600)
-
 def S2error(assignment,allratios,allsigmas):
     delays = allratios.columns.values
     ratios = allratios.ix[assignment]
@@ -160,56 +136,8 @@ def S2error(assignment,allratios,allsigmas):
         fitParams, fitCovariances = curve_fit(fitFunc, delays, generatedratios)
         S2s.append(eta2S2axis(fitParams[0]))
     mu,std = norm.fit(S2s)
-    #x = np.linspace(0,1,100)
-    #pdf_fitted = norm.pdf(x,loc=mu,scale=std)
-    #plt.figure()
-    #plt.hist(S2s,30,normed=True)
-    #plt.plot(x,pdf_fitted, 'k', linewidth=2)
-    #plt.show()
     return std    
 
-## def S2barplot(allratios,allsigmas):
-##     delays=allratios.columns.values
-##     assignments = allratios[delays[0]].keys()
-##     S2values = []
-##     S2errors = []
-##     print "Preparing bar chart:"
-##     for ass in assignments:
-##         print ass
-##         ratios = allratios.ix[ass]
-##         sigmas = allsigmas.ix[ass]
-##         S2s = []
-##         for k in range(monte_carlo_iterations): #5000 for real runs
-##             generatedratios = np.random.normal(ratios,sigmas)
-##             fitParams, fitCovariances = curve_fit(fitFunc, delays, generatedratios)
-##             S2s.append(eta2S2axis(fitParams[0]))
-##         mu,std = norm.fit(S2s)
-##         S2values.append(mu)
-##         S2errors.append(std)
-##     fix,ax = plt.subplots(figsize=(20,5))
-##     h = plt.bar(xrange(len(assignments)),
-##                   S2values,
-##                   color='r',
-##                   label=ass,
-##                   yerr=S2errors)
-##     plt.subplots_adjust(bottom=0.3)
-##     xticks_pos = [0.5*patch.get_width() + patch.get_xy()[0] for patch in h]
-##     plt.xticks(xticks_pos, assignments, ha='right', rotation=45)
-##     ax.set_ylabel('S2axis')
-##     #ax.set_xticks(ind+width)
-##     #ax.set_xticklabels(assignments)
-##     ax.set_title(sample_name)
-##     plt.savefig(sample_name+'_bar.pdf')
-##     plt.show()
-##     #S2errorDF = DataFrame({'S2':S2values,'S2error':S2errors}, index=assignments)
-##     #S2errorDF.to_excel(sample_name+'_S2.xls')
-##     #outfile = sample_name+'_bar.txt'
-##     #openfile = open(outfile,'w')
-##     #openfile.write('Assignment\tS2\tS2error\n')
-##     #for i in range(len(assignments)):
-##     #    openfile.write('%s\t%0.8f\t%0.8f\n'%(assignments[i],S2values[i],S2errors[i]))
-##     #openfile.close()
-##     #return S2values,S2errors
 
 def S2barplot(S2errorDF):
     S2values = S2errorDF['S2'].values
@@ -236,13 +164,7 @@ def plotfakecurve(assignment,allratios,allsigmas,ax):
     delays = allratios.columns.values
     ratios = allratios.ix[assignment]
     sigmas = allsigmas.ix[assignment]
-    #fitParams, fitCovariances = curve_fit(fitFunc, delays, ratios)
-    #eta = fitParams[0]
-    #S2axis = eta2S2axis(eta)
-    #sigS2axis=S2error(assignment,allratios,allsigmas)
-    #S2expression = r'$S_{axis}^2 = %.2f\pm%.2f$'%(S2axis,sigS2axis)
     ax.errorbar(delays, ratios, fmt = 'w.', yerr = sigmas)
-    #ax.plot(delays, fitFunc(delays, fitParams[0], fitParams[1]))
     plt.setp(ax.get_xticklabels(),rotation='vertical')
 
 def plot1curve(assignment,allratios,allsigmas,ax):
@@ -260,10 +182,6 @@ def plot1curve(assignment,allratios,allsigmas,ax):
     ax.annotate(assignment+'\n'+S2expression,xy=(10,-10),xycoords='axes points',
                 horizontalalignment='left',verticalalignment='top')
     return S2axis, sigS2axis
-    #ax.title(assignment)
-    
-    
-
 
 def plot3curves(allratios,allsigmas):
     delays=allratios.columns.values
@@ -274,7 +192,6 @@ def plot3curves(allratios,allsigmas):
     f, axes = plt.subplots(rows,cols,sharex=True,sharey=True)
     f.set_size_inches(8,10.5)
     f.subplots_adjust(wspace=0.05,hspace=0.05)
-    #axes = (ax1,ax2,ax3)
     row=0
     col=0
     page=0
@@ -301,8 +218,6 @@ def plot3curves(allratios,allsigmas):
             big_ax.set_title(sample_name)
             plt.ylabel('Peak height ratio '+r'$\frac{I_a}{I_b}$')
             plt.xlabel('delay (s)',labelpad=20)
-            #f.set_tight_layout(True)
-            #plt.setp([a.get_yticklabels() for a in f.axes[:-1]], visible=False)
             plt.savefig('%s_curves_%d.pdf'%(sample_name,page))
             #plt.show()            
             row=0
@@ -338,14 +253,10 @@ def plot3curves(allratios,allsigmas):
     
 
 def main():
-    #filepath = FileDirectory+testfile
     Ydataframes,Ndataframes = parselists(Yfiles,Nfiles)
     ratios,sigmas=computeratiossigmas(Ydataframes,Ndataframes,Noise)
     S2errorDF = plot3curves(ratios,sigmas)
-    #S2barplot(ratios,sigmas)
     S2barplot(S2errorDF)
-    #print parsepeaklist(filepath)
-    #S2error('M32CE-HE',ratios,sigmas)
 
 main()
 
