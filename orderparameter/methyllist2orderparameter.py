@@ -12,37 +12,38 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
 from scipy.optimize import curve_fit
-from math import pi
+from math import pi,ceil
 from scipy.stats import norm
 
 # User-editable constant
 tauC=10.595e-9 #s, the global molecular tumbling time, (if you have not measured your protein'ss tauC, use the following website to calculate the rough value, http://nickanthis.com/tools/tau)
 
 # Sample Name for titles
-sample_name = '20140624 HCN apo CzrA'
+sample_name = '20140928 ILVAM apo CzrA'
+methylsperpage = 3
 
 # Input file information
 
 # Location of files
-FileDirectory = '/Users/edmonds/git/matlab/orderparameter/'
-testfile = '20140624_apoCzra_DQ_y_40c_ph6_2ms.list'
+FileDirectory = '/Users/edmonds/git/methyls/orderparameter/apo_CzrA_peaklists/'
+#testfile = '20140624_apoCzra_DQ_y_40c_ph6_2ms.list'
 # Filenames for Yes condition, keyed by delay length (seconds)
-Yfiles = {0.0020:'20140624_apoCzra_DQ_y_40c_ph6_2ms.list', 
-          0.0050:'20140624_apoCzra_DQ_y_40c_ph6_5ms.list', 
-          0.0080:'20140624_apoCzra_DQ_y_40c_ph6_8ms.list', 
-          0.0120:'20140624_apoCzra_DQ_y_40c_ph6_12ms.list',
-          0.0170:'20140624_apoCzra_DQ_y_40c_ph6_17ms.list',
-          0.0220:'20140624_apoCzra_DQ_y_40c_ph6_22ms.list',
-          0.0270:'20140624_apoCzra_DQ_y_40c_ph6_27ms.list'}
+Yfiles = {0.0030:'20140928_apo_WT_CzrA_ILVAM_DQy_40c_pd6_3ms_2.list', 
+          0.0050:'20140928_apo_WT_CzrA_ILVAM_DQy_40c_pd6_5ms_2.list', 
+          0.0080:'20140928_apo_WT_CzrA_ILVAM_DQy_40c_pd6_8ms_2.list', 
+          0.0120:'20140928_apo_WT_CzrA_ILVAM_DQy_40c_pd6_12ms_2.list',
+          0.0170:'20140928_apo_WT_CzrA_ILVAM_DQy_40c_pd6_17ms_2.list',
+          0.0220:'20140928_apo_WT_CzrA_ILVAM_DQy_40c_pd6_22ms_2.list',
+          0.0270:'20140928_apo_WT_CzrA_ILVAM_DQy_40c_pd6_27ms_2.list'}
 
 # Filenames for No condition, keyed by delay length (seconds)
-Nfiles = {0.0020:'20140624_apoCzra_DQ_n_40c_ph6_2ms.list', 
-          0.0050:'20140624_apoCzra_DQ_n_40c_ph6_5ms.list', 
-          0.0080:'20140624_apoCzra_DQ_n_40c_ph6_8ms.list', 
-          0.0120:'20140624_apoCzra_DQ_n_40c_ph6_12ms.list',
-          0.0170:'20140624_apoCzra_DQ_n_40c_ph6_17ms.list',
-          0.0220:'20140624_apoCzra_DQ_n_40c_ph6_22ms.list',
-          0.0270:'20140624_apoCzra_DQ_n_40c_ph6_27ms.list'}
+Nfiles = {0.0030:'20140928_apo_WT_CzrA_ILVAM_DQn_40c_pd6_3ms_2.list', 
+          0.0050:'20140928_apo_WT_CzrA_ILVAM_DQn_40c_pd6_5ms_2.list', 
+          0.0080:'20140928_apo_WT_CzrA_ILVAM_DQn_40c_pd6_8ms_2.list', 
+          0.0120:'20140928_apo_WT_CzrA_ILVAM_DQn_40c_pd6_12ms_2.list',
+          0.0170:'20140928_apo_WT_CzrA_ILVAM_DQn_40c_pd6_17ms_2.list',
+          0.0220:'20140928_apo_WT_CzrA_ILVAM_DQn_40c_pd6_22ms_2.list',
+          0.0270:'20140928_apo_WT_CzrA_ILVAM_DQn_40c_pd6_27ms_2.list'}
 
 
 def parsepeaklist(filepath):
@@ -74,6 +75,16 @@ def parselists(Yfiles, Nfiles):
 #        print Ndataframes[d]
     return Ydataframes,Ndataframes
 
+def writeratiossigmas(ratios,sigmas):
+    assignments = ratios.transpose().keys()
+    pages = int(ceil(float(len(assignments))/methylsperpage))
+    concatenated = pd.concat([ratios,sigmas],keys=['ratio','sigma']).swaplevel(0,1).sortlevel(0).transpose()
+    for i in range(pages):
+        first = i*methylsperpage
+        last = (i+1)*methylsperpage
+        outfile = '%s_%d.csv'%(sample_name,i)
+        concatenated[assignments[first:min(last,len(assignments))]].to_csv(outfile)
+
 def computeratiossigmas(Yframes,Nframes):
     # Recombine DataFrames to obtain new DataFrame objects containing
     # peak height ratios and error bars for each peak at each delay.
@@ -87,10 +98,7 @@ def computeratiossigmas(Yframes,Nframes):
     for d in delays:
         ratios[d] = -1*Yframes[d]['Data Height']/Nframes[d]['Data Height']
         sigmas[d] = ratios[d]*np.sqrt(1/Yframes[d]['S/N']**2+1/Nframes[d]['S/N']**2)
-    print "ratios:"
-    print ratios
-    print "sigmas:"
-    print sigmas
+    writeratiossigmas(ratios,sigmas)
     return ratios,sigmas
 
 def fitFunc(t, eta, delta):
@@ -105,29 +113,29 @@ def eta2S2axis(eta):
     S2axis=(10.0/9)*((4*pi/mu0)**2)*4*(rHH**6)*eta/(tauC*(h/(2*pi))**2*gammaH**4)
     return S2axis
 
-def plotcurve(assignment,allratios,allsigmas):
-    delays = allratios.columns.values
-    ratios = allratios.ix[assignment]
-    sigmas = allsigmas.ix[assignment]
+## def plotcurve(assignment,allratios,allsigmas):
+##     delays = allratios.columns.values
+##     ratios = allratios.ix[assignment]
+##     sigmas = allsigmas.ix[assignment]
 
-    fitParams, fitCovariances = curve_fit(fitFunc, delays, ratios)
-    eta = fitParams[0]
-    S2axis = eta2S2axis(eta)
+##     fitParams, fitCovariances = curve_fit(fitFunc, delays, ratios)
+##     eta = fitParams[0]
+##     S2axis = eta2S2axis(eta)
     
-    print 'S2axis: %.2f'%S2axis
-    print ' fit coefficients [eta,delta]:\n', fitParams
-    print ' Covariance matrix:\n', fitCovariances
-    plt.ylabel('Peak height ratio '+r'$\frac{I_a}{I_b}$')
-    plt.xlabel('delay (s)')
-    sigS2axis=0
-    S2expression = r'$S_{axis}^2 = %.2f\pm%.2f$'%(S2axis,sigS2axis)
-    plt.title(assignment)
-    plt.errorbar(delays, ratios, fmt = 'bo', yerr = sigmas)
-    plt.plot(delays, fitFunc(delays, fitParams[0], fitParams[1]))
-    plt.annotate(S2expression,xy=(10,-10),xycoords='axes points',
-                 horizontalalignment='left',verticalalignment='top')
-    # save plot to a file
-    plt.savefig(assignment+'.pdf', bbox_inches=0, dpi=600)
+##     print 'S2axis: %.2f'%S2axis
+##     print ' fit coefficients [eta,delta]:\n', fitParams
+##     print ' Covariance matrix:\n', fitCovariances
+##     plt.ylabel('Peak height ratio '+r'$\frac{I_a}{I_b}$')
+##     plt.xlabel('delay (s)')
+##     sigS2axis=0
+##     S2expression = r'$S_{axis}^2 = %.2f\pm%.2f$'%(S2axis,sigS2axis)
+##     plt.title(assignment)
+##     plt.errorbar(delays, ratios, fmt = 'bo', yerr = sigmas)
+##     plt.plot(delays, fitFunc(delays, fitParams[0], fitParams[1]))
+##     plt.annotate(S2expression,xy=(10,-10),xycoords='axes points',
+##                  horizontalalignment='left',verticalalignment='top')
+##     # save plot to a file
+##     plt.savefig(assignment+'.pdf', bbox_inches=0, dpi=600)
 
 def S2error(assignment,allratios,allsigmas):
     delays = allratios.columns.values
@@ -157,14 +165,14 @@ def S2barplot(allratios,allsigmas):
         ratios = allratios.ix[ass]
         sigmas = allsigmas.ix[ass]
         S2s = []
-        for k in range(500):
+        for k in range(50): #5000 for real runs
             generatedratios = np.random.normal(ratios,sigmas)
             fitParams, fitCovariances = curve_fit(fitFunc, delays, generatedratios)
             S2s.append(eta2S2axis(fitParams[0]))
         mu,std = norm.fit(S2s)
         S2values.append(mu)
         S2errors.append(std)
-    fix,ax = plt.subplots()
+    fix,ax = plt.subplots(figsize=(10,3))
     h = plt.bar(xrange(len(assignments)),
                   S2values,
                   color='r',
@@ -179,8 +187,26 @@ def S2barplot(allratios,allsigmas):
     ax.set_title(sample_name)
     plt.savefig(sample_name+'_bar.pdf')
     plt.show()
+    outfile = sample_name+'_bar.txt'
+    openfile = open(outfile,'w')
+    openfile.write('Assignment\tS2\tS2error\n')
+    for i in range(len(assignments)):
+        openfile.write('%s\t%0.8f\t%0.8f\n'%(assignments[i],S2values[i],S2errors[i]))
+    openfile.close()
     return S2values,S2errors
         
+def plotfakecurve(assignment,allratios,allsigmas,ax):
+    delays = allratios.columns.values
+    ratios = allratios.ix[assignment]
+    sigmas = allsigmas.ix[assignment]
+    #fitParams, fitCovariances = curve_fit(fitFunc, delays, ratios)
+    #eta = fitParams[0]
+    #S2axis = eta2S2axis(eta)
+    #sigS2axis=S2error(assignment,allratios,allsigmas)
+    #S2expression = r'$S_{axis}^2 = %.2f\pm%.2f$'%(S2axis,sigS2axis)
+    ax.errorbar(delays, ratios, fmt = 'w.', yerr = sigmas)
+    #ax.plot(delays, fitFunc(delays, fitParams[0], fitParams[1]))
+    plt.setp(ax.get_xticklabels(),rotation='vertical')
 
 def plot1curve(assignment,allratios,allsigmas,ax):
     delays = allratios.columns.values
@@ -191,7 +217,7 @@ def plot1curve(assignment,allratios,allsigmas,ax):
     S2axis = eta2S2axis(eta)
     sigS2axis=S2error(assignment,allratios,allsigmas)
     S2expression = r'$S_{axis}^2 = %.2f\pm%.2f$'%(S2axis,sigS2axis)
-    ax.errorbar(delays, ratios, fmt = 'bo', yerr = sigmas)
+    ax.errorbar(delays, ratios, fmt = 'b.', yerr = sigmas)
     ax.plot(delays, fitFunc(delays, fitParams[0], fitParams[1]))
     plt.setp(ax.get_xticklabels(),rotation='vertical')
     ax.annotate(assignment+'\n'+S2expression,xy=(10,-10),xycoords='axes points',
@@ -199,28 +225,56 @@ def plot1curve(assignment,allratios,allsigmas,ax):
     #ax.title(assignment)
     
     
+
+
 def plot3curves(allratios,allsigmas):
     delays=allratios.columns.values
-    assignments = allratios[delays[0]].keys()
-    #assignments = ['M32CE-HE','M78CE-HE','M90CE-HE','M32CE-HE','M78CE-HE','M90CE-HE','M32CE-HE','M78CE-HE','M90CE-HE','M32CE-HE','M78CE-HE','M90CE-HE']
-    assignments = ['M32CE-HE','M78CE-HE','M90CE-HE','M32CE-HE','M78CE-HE','M90CE-HE']
-    rows = 2
-    cols = 3
+    assignments = allratios[delays[0]].keys()    
+    rows = 5
+    cols = 4
+    pages = ceil(float(len(assignments))/(rows*cols))
     f, axes = plt.subplots(rows,cols,sharex=True,sharey=True)
+    f.set_size_inches(8.5,11)
     f.subplots_adjust(wspace=0.05,hspace=0.05)
     #axes = (ax1,ax2,ax3)
-    i=0
-    j=0
+    row=0
+    col=0
+    page=0
     for ass in assignments:
-#        print ass
-        plot1curve(ass,allratios,allsigmas,axes[i,j])
-        j=j+1
-        if j>=cols:
-            j=0
-            i=i+1
-#    for ax in axes:
-#        plot1curve(assignments[i],allratios,allsigmas,ax)
-#        i=i+1
+        #print ass, row, col, page
+        plot1curve(ass,allratios,allsigmas,axes[row,col])
+        col=col+1
+        if col>=cols:
+            col=0
+            row=row+1
+        if row >=rows:
+            big_ax=f.add_subplot(111)
+            big_ax.set_axis_bgcolor('none')
+            big_ax.tick_params(labelcolor='none',top='off',bottom='off',left='off',right='off')
+            big_ax.spines['top'].set_color('none')
+            big_ax.spines['bottom'].set_color('none')
+            big_ax.spines['left'].set_color('none')
+            big_ax.spines['right'].set_color('none')
+            big_ax.set_title(sample_name)
+            plt.ylabel('Peak height ratio '+r'$\frac{I_a}{I_b}$')
+            plt.xlabel('delay (s)',labelpad=20)
+            #f.set_tight_layout(True)
+            #plt.setp([a.get_yticklabels() for a in f.axes[:-1]], visible=False)
+            plt.savefig('%s_curves_%d.pdf'%(sample_name,page))
+            #plt.show()            
+            row=0
+            page=page+1
+            f, axes = plt.subplots(rows,cols,sharex=True,sharey=True)
+            f.set_size_inches(8.5,11)
+            f.subplots_adjust(wspace=0.05,hspace=0.05)
+    maxcharts = rows*cols*pages
+    fakecharts = int(maxcharts-len(assignments))
+    for i in range(fakecharts):
+        plotfakecurve(ass,allratios,allsigmas,axes[row,col])
+        col=col+1
+        if col>=cols:
+            col=0
+            row=row+1
     big_ax=f.add_subplot(111)
     big_ax.set_axis_bgcolor('none')
     big_ax.tick_params(labelcolor='none',top='off',bottom='off',left='off',right='off')
@@ -231,15 +285,13 @@ def plot3curves(allratios,allsigmas):
     big_ax.set_title(sample_name)
     plt.ylabel('Peak height ratio '+r'$\frac{I_a}{I_b}$')
     plt.xlabel('delay (s)',labelpad=20)
-    #f.set_tight_layout(True)
-    #plt.setp([a.get_yticklabels() for a in f.axes[:-1]], visible=False)
-    plt.savefig(sample_name+'_curves.pdf')
-    plt.show()
-
+    plt.savefig('%s_curves_%d.pdf'%(sample_name,page))
+    #plt.show()            
+    
     
 
 def main():
-    filepath = FileDirectory+testfile
+    #filepath = FileDirectory+testfile
     Ydataframes,Ndataframes = parselists(Yfiles,Nfiles)
     ratios,sigmas=computeratiossigmas(Ydataframes,Ndataframes)
     plot3curves(ratios,sigmas)
