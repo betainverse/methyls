@@ -21,7 +21,7 @@ tauC=10.595e-9 #s, the global molecular tumbling time, (if you have not measured
 # Sample Name for titles
 sample_name = '20140928 ILVAM apo CzrA'
 methylsperpage = 9
-monte_carlo_iterations = 50 #Use 5000 for real, 50 to test
+monte_carlo_iterations = 5000 #Use 5000 for real, 50 to test
 
 # Input file information
 
