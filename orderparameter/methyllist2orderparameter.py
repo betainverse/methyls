@@ -14,6 +14,7 @@ import matplotlib.gridspec as gridspec
 from scipy.optimize import curve_fit
 from math import pi,ceil
 from scipy.stats import norm
+import re
 
 # User-editable constant
 tauC=10.595e-9 #s, the global molecular tumbling time, (if you have not measured your protein'ss tauC, use the following website to calculate the rough value, http://nickanthis.com/tools/tau)
@@ -21,7 +22,7 @@ tauC=10.595e-9 #s, the global molecular tumbling time, (if you have not measured
 # Sample Name for titles
 sample_name = '20140928 ILVAM apo CzrA'
 methylsperpage = 9
-monte_carlo_iterations = 5000 #Use 5000 for real, 50 to test
+monte_carlo_iterations = 5 #Use 5000 for real, 50 to test
 
 # Input file information
 
@@ -97,6 +98,12 @@ def parselists(Yfiles, Nfiles):
 ##         outfile = '%s_%d.csv'%(sample_name,i)
 ##         concatenated[assignments[first:min(last,len(assignments))]].to_csv(outfile)
 
+def formatAssignment(ass):
+    return re.sub(r'(\d+)C',r'\1-C',ass.split('-')[0])
+def greekFormatAssignment(ass):
+    return r'$%s$'%ass.replace('-CB',' \\beta').replace('-CE',' \epsilon').replace('-CG',' \gamma').replace('-CD',' \delta')
+
+
 def computeratiossigmas(Yframes,Nframes,Noise):
     # Recombine DataFrames to obtain new DataFrame objects containing
     # peak height ratios and error bars for each peak at each delay.
@@ -111,6 +118,10 @@ def computeratiossigmas(Yframes,Nframes,Noise):
         sigmas[d] = abs(ratios[d])*np.sqrt((Noise[d]/Yframes[d]['Data Height'])**2+(Noise[d]/Nframes[d]['Data Height'])**2)
         # if there are any negative numbers in ratios, set them to zero:
         ratios.loc[ratios[d]<0,d] = 0
+    methyls = ratios.index
+    ratios.index = [formatAssignment(x) for x in methyls]
+    sigmas.index = [formatAssignment(x) for x in methyls]
+    #sigmas.index = [x.split('-')[0] for x in methyls]
 #    writeratiossigmas(ratios,sigmas)
     return ratios,sigmas
 
@@ -142,6 +153,7 @@ def S2error(assignment,allratios,allsigmas):
 def S2barplot(S2errorDF):
     S2values = S2errorDF['S2'].values
     assignments = S2errorDF.index
+    #assignments = [greekFormatAssignment(x) for x in S2errorDF.index]
     S2errors = S2errorDF['S2error'].values
     fix,ax = plt.subplots(figsize=(20,5))
     h = plt.bar(xrange(len(assignments)),
@@ -179,13 +191,14 @@ def plot1curve(assignment,allratios,allsigmas,ax):
     ax.errorbar(delays, ratios, fmt = 'b.', yerr = sigmas)
     ax.plot(delays, fitFunc(delays, fitParams[0], fitParams[1]))
     plt.setp(ax.get_xticklabels(),rotation='vertical')
-    ax.annotate(assignment+'\n'+S2expression,xy=(10,-10),xycoords='axes points',
+    ax.annotate(greekFormatAssignment(assignment)+'\n'+S2expression,xy=(10,-10),xycoords='axes points',
                 horizontalalignment='left',verticalalignment='top')
     return S2axis, sigS2axis
 
 def plot3curves(allratios,allsigmas):
     delays=allratios.columns.values
     assignments = allratios[delays[0]].keys()    
+    print assignments
     rows = 5
     cols = 4
     pages = ceil(float(len(assignments))/(rows*cols))
