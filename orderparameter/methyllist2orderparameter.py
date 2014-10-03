@@ -99,6 +99,7 @@ def parselists(Yfiles, Nfiles):
 ##         concatenated[assignments[first:min(last,len(assignments))]].to_csv(outfile)
 
 def formatAssignment(ass):
+    #Condense the original sparky assignment string to remove the H
     return re.sub(r'(\d+)C',r'\1-C',ass.split('-')[0])
 def greekFormatAssignment(ass):
     return r'$%s$'%ass.replace('-CB',' \\beta').replace('-CE',' \epsilon').replace('-CG',' \gamma').replace('-CD',' \delta')
