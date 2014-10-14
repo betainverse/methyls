@@ -58,6 +58,31 @@ Noise = {0.0030:1420,
          0.0220:2440,
          0.0270:1610}
 
+# one_letter["SER"] will now return "S"
+one_letter ={'VAL':'V', 'ILE':'I', 'LEU':'L', 'GLU':'E', 'GLN':'Q', \
+'ASP':'D', 'ASN':'N', 'HIS':'H', 'TRP':'W', 'PHE':'F', 'TYR':'Y',    \
+'ARG':'R', 'LYS':'K', 'SER':'S', 'THR':'T', 'MET':'M', 'ALA':'A',    \
+'GLY':'G', 'PRO':'P', 'CYS':'C'}
+ 
+# three_letter["S"] will now return "SER"
+three_letter = dict([[v,k] for k,v in one_letter.items()])
+
+def format_label(orig):
+    res,atom = orig.split('-')
+    resn = three_letter[res[0]]
+    resi = res[1:]
+    new = '%s\t%s\t%s'%(resi,resn,atom)
+    return new
+
+def export_data(df):
+    df.to_excel(sample_name+'_S2.xls')
+    filename = sample_name+'_pymol.txt'
+    openfile = open(filename,'w')
+    index = df.index
+    for res in index:
+        openfile.write(format_label(res)+'\t%0.8f\n'%df.ix[res]['S2'])
+    openfile.close()
+    
 def parsepeaklist(filepath):
     # Given the path to a file, return a pandas DataFrame object indexed by
     # the peak assignment, with columns for Data Height and S/N.
@@ -199,7 +224,7 @@ def plot1curve(assignment,allratios,allsigmas,ax):
 def plot3curves(allratios,allsigmas):
     delays=allratios.columns.values
     assignments = allratios[delays[0]].keys()    
-    print assignments
+    #print assignments
     rows = 5
     cols = 4
     pages = ceil(float(len(assignments))/(rows*cols))
@@ -260,7 +285,7 @@ def plot3curves(allratios,allsigmas):
     plt.savefig('%s_curves_%d.pdf'%(sample_name,page))
 
     S2errorDF = DataFrame({'S2':S2values,'S2error':S2errors}, index=assignments)
-    S2errorDF.to_excel(sample_name+'_S2.xls')
+    
     return S2errorDF
     #plt.show()            
     
@@ -271,6 +296,7 @@ def main():
     ratios,sigmas=computeratiossigmas(Ydataframes,Ndataframes,Noise)
     S2errorDF = plot3curves(ratios,sigmas)
     S2barplot(S2errorDF)
+    export_data(S2errorDF)
 
 main()
 
