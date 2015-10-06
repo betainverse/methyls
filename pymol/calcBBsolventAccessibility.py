@@ -26,9 +26,21 @@ def BBsolvent( sel1 ):
     my_dict = { 'my_list' : [] }
     cmd.iterate(sel1, "my_list.append(resi)", space=my_dict)
     residueIDs = sorted(set(map(int,my_dict['my_list'])))
+    Nvalues = []
+    Cvalues = []
     for rID in residueIDs:
-        #print rID
-        print rID,cmd.get_area("%s and resid %s and name N"%(sel1,rID)),cmd.get_area("%s and resid %s and name C"%(sel1,rID)) 
+        NASA = cmd.get_area("%s and resid %s and name N"%(sel1,rID))
+        CASA = cmd.get_area("%s and resid %s and name C"%(sel1,rID))
+        cmd.alter("%s+b and resid %d name N"%(sel1,rID), 'b=%0.4f'%NASA)
+        cmd.alter("%s and resid %d name C"%(sel1,rID), 'b=%0.4f'%CASA)
+        print rID,NASA,CASA
+        Nvalues.append(NASA)
+        Cvalues.append(CASA)
+    #minN = min(Nvalues)
+    #maxN = max(Nvalues)
+    #maxC = max(Cvalues)
+    #cmd.spectrum("b","blue_white_red","%s or chain B and name N"%sel1, minimum=0,maximum=maxN)
+    #cmd.spectrum("b","blue_white_red","%s and name C"%sel1, minimum=0,maximum=maxC)
     return 0
 
 cmd.extend( "BBsolvent", BBsolvent );
